@@ -80,8 +80,17 @@ dependencies {
     implementation("com.google.firebase:firebase-firestore")
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-analytics")
+
+
+
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.compose.ui.text)
+    //implementation(libs.firebase.storage.ktx)
+    /////////implementation(libs.firebase.storage.ktx)
+    ////---------la remplaza esta
+    implementation("com.google.firebase:firebase-storage")
+
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.0")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

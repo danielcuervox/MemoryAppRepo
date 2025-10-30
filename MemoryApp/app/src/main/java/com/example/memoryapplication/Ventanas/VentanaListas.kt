@@ -1,6 +1,10 @@
 package com.example.memoryapplication.Ventanas
 
+import android.Manifest
+import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -70,7 +74,9 @@ fun NuevaLista(navController: NavHostController, usuarioViewModel: UsuarioViewMo
 
     var abrirAlertAgregarLista by remember { mutableStateOf(false) }
 
-    LaunchedEffect(key1 = idTemaFinal) {
+
+
+    LaunchedEffect(key1 = idTemaFinal, ) {
         if (user != null && idTemaFinal.isNotEmpty()) {
             listasViewModel.cargarListasUsuarioYTema(user.uid, idTemaFinal)
         }
@@ -92,7 +98,6 @@ fun NuevaLista(navController: NavHostController, usuarioViewModel: UsuarioViewMo
                 usuarioViewModel = usuarioViewModel
             )
         },
-        // 👇 Aquí añadimos el botón flotante
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
@@ -120,13 +125,6 @@ fun NuevaLista(navController: NavHostController, usuarioViewModel: UsuarioViewMo
             verticalArrangement = Arrangement.Center
         ) {
 
-//            ListaDeLista(
-//                listas = litasPrueba,
-//                onClickLista = { lista ->
-//                    navController.navigate("VentanaPalabras/${lista.idLista}")
-//                    //navController.navigate(Rutas.VentanaPalabras)
-//                }
-//            )
 
             if(listaDeListas.isEmpty()){
                 Text("No hay listas para mostrar")

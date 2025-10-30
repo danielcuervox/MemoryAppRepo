@@ -7,7 +7,8 @@ data class Tarjeta (
     var idUsuario: String = "",
     var idTema: String = "",
     var idLista: String = "",
-    var puntajeTarjeta: Int = 0
+    var puntajeTarjeta: Int = 0,
+    val audioUrl: String = ""
 )
 
 
