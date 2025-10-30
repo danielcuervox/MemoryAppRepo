@@ -164,16 +164,16 @@ class UsuarioViewModel : ViewModel() {
 
     private val _listasPrueba = MutableStateFlow(
         listOf(
-            Lista(idLista = "1", nombreLista = "Saludos y Presentaciones", idUsuario = "user1", idTema = "1", puntuación = -5),
-            Lista(idLista = "2", nombreLista = "Colores y Números", idUsuario = "user1", idTema = "1", puntuación = -10),
-            Lista(idLista = "3", nombreLista = "La Familia", idUsuario = "user1", idTema = "1", puntuación = 0),
-            Lista(idLista = "4", nombreLista = "Comida y Bebidas", idUsuario = "user1", idTema = "2", puntuación = 1),
-            Lista(idLista = "5", nombreLista = "Ropa y Accesorios", idUsuario = "user1", idTema = "2", puntuación = 3),
-            Lista(idLista = "6", nombreLista = "La Casa y el Hogar", idUsuario = "user1", idTema = "3", puntuación = 5),
-            Lista(idLista = "7", nombreLista = "El Cuerpo Humano", idUsuario = "user1", idTema = "3", puntuación = 7),
-            Lista(idLista = "8", nombreLista = "Transporte y Viajes", idUsuario = "user1", idTema = "4", puntuación = 8),
-            Lista(idLista = "9", nombreLista = "Profesiones y Oficios", idUsuario = "user1", idTema = "5", puntuación = 10),
-            Lista(idLista = "10", nombreLista = "Tiempo y Estaciones", idUsuario = "user1", idTema = "5", puntuación = 12)
+            Lista(idLista = "1", nombreLista = "Saludos y Presentaciones", idUsuario = "user1", idTema = "1", puntuacion = -5),
+            Lista(idLista = "2", nombreLista = "Colores y Números", idUsuario = "user1", idTema = "1", puntuacion = -10),
+            Lista(idLista = "3", nombreLista = "La Familia", idUsuario = "user1", idTema = "1", puntuacion = 0),
+            Lista(idLista = "4", nombreLista = "Comida y Bebidas", idUsuario = "user1", idTema = "2", puntuacion = 1),
+            Lista(idLista = "5", nombreLista = "Ropa y Accesorios", idUsuario = "user1", idTema = "2", puntuacion = 3),
+            Lista(idLista = "6", nombreLista = "La Casa y el Hogar", idUsuario = "user1", idTema = "3", puntuacion = 5),
+            Lista(idLista = "7", nombreLista = "El Cuerpo Humano", idUsuario = "user1", idTema = "3", puntuacion = 7),
+            Lista(idLista = "8", nombreLista = "Transporte y Viajes", idUsuario = "user1", idTema = "4", puntuacion = 8),
+            Lista(idLista = "9", nombreLista = "Profesiones y Oficios", idUsuario = "user1", idTema = "5", puntuacion = 10),
+            Lista(idLista = "10", nombreLista = "Tiempo y Estaciones", idUsuario = "user1", idTema = "5", puntuacion = 12)
         )
     )
     val listasPrueba = _listasPrueba.asStateFlow()

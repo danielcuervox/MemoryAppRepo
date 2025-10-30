@@ -1,12 +1,12 @@
 package com.example.memoryapplication.Ventanas
 
+import android.media.Image
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,9 +27,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -40,13 +38,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -55,17 +51,17 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.memoryapplication.Modelo.Tarjeta
 import com.example.memoryapplication.R
+import com.example.memoryapplication.ViewModels.ListasViewModel
 import com.example.memoryapplication.ViewModels.TarjetasViewModel
 import com.example.memoryapplication.ViewModels.UsuarioViewModel
 import com.example.memoryapplication.utils.BottonBarMio
-import kotlin.math.log
+import androidx.compose.foundation.Image
 
 // Definición de colores
 val ColorSilverStart = Color(0xFFC0C0C0)
@@ -80,6 +76,7 @@ val ColorInactive = Color(0x60808080) //
 @Composable
 fun EstudioFlashCards(navController: NavHostController,
                       usuarioViewModel: UsuarioViewModel,
+                      listasViewModel : ListasViewModel,
                       idTema : String?,
                       idLista:String?) {
 
@@ -88,6 +85,7 @@ fun EstudioFlashCards(navController: NavHostController,
     val tarjetasViewModel: TarjetasViewModel = viewModel()
     val idTemaActual = idTema ?: ""
     val idListaActual = idLista ?: ""
+
 
     val listaTarjetas by tarjetasViewModel.listaTarjetas.collectAsState(initial = emptyList())
 
@@ -100,22 +98,30 @@ fun EstudioFlashCards(navController: NavHostController,
     val tarjetaActual = listaTarjetas.getOrNull(indiceListaTarjetas)
     var tarjetaLadoPregunta by remember { mutableStateOf(false) }
     var avisoSiguienteActividad by remember { mutableStateOf(false) }
-    var numeroDeActividadActual by remember { mutableStateOf(1) }
+
+
+    val nivelDesdeViewModel by listasViewModel.nivelActualLista.collectAsState()
+    var numeroDeActividadActual by remember(nivelDesdeViewModel) {
+        mutableStateOf(nivelDesdeViewModel)
+    }
 
 
     LaunchedEffect(key1 = idTemaActual, idListaActual) {
         if (user != null && idTemaActual.isNotEmpty()) {
             tarjetasViewModel.cargarListasTarjetas(user.uid, idTemaActual, idListaActual)
         }
+        //para actualizar el nivel actuar de la lista de estas tarjtas
+        if (idLista != null) {
+            listasViewModel.getNivelActual(idLista)
+        }
     }
 
     // Check if the list is empty
     val isListEmpty = listaTarjetas.isEmpty()
 
-    var botónMalVisible by remember { mutableStateOf(false) }
-    var actividadFinalizada by remember { mutableStateOf(false) }
-    var contadorTarjetasPorEstudiar by remember {mutableStateOf(0)}
 
+    var actividadFinalizada by remember { mutableStateOf(false) }
+    var respuestaEscritaPorUsuario by remember { mutableStateOf("") }
 
     val listaIndicesDisponibles = remember(listaTarjetas, numeroDeActividadActual) {
         (0 until listaTarjetas.size).toMutableList()
@@ -169,7 +175,12 @@ fun EstudioFlashCards(navController: NavHostController,
                         style = MaterialTheme.typography.headlineSmall
                     )
                 } else if (tarjetaActual != null) {
-                    FlashCardView(card = tarjetaActual, tarjetaLadoPregunta, numeroDeActividadActual,  onFlipChange = { tarjetaLadoPregunta = it })
+                    FlashCardView(card = tarjetaActual,
+                        tarjetaLadoPregunta,
+                        numeroDeActividadActual,
+                        respuestaEscritaPorUsuario,
+                        onRespuestaChange = { respuestaEscritaPorUsuario = it },
+                        onFlipChange = { tarjetaLadoPregunta = it })
 
                 }
             }
@@ -180,24 +191,114 @@ fun EstudioFlashCards(navController: NavHostController,
                     .padding(top = 16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Botón "Repasar / Mal"
+//                // Botón "Repasar / Mal"
+//                if (tarjetaLadoPregunta) {
+//                    Button(
+//                        onClick = {
+//
+//                            //quita siempre y punto y si aún ahy indices de tarjetas por estudiar sigue repitiendo la segunda parte
+//                            // creo que sobra
+//                            tarjetaActual?.let{
+//                                tarjetaActual.puntajeTarjeta--
+//                                tarjetasViewModel.actualizarPuntajes(tarjetaActual, user!!.uid)
+//                            }
+//
+//
+//                            tarjetaLadoPregunta = false
+//                        },
+//                        modifier = Modifier
+//                            .weight(1f)
+//                            .height(56.dp)
+//                    ) {
+//                        Text("Repasar")
+//                    }
+//
+//                    Spacer(modifier = Modifier.width(16.dp))
+//
+//                    // Botón "Bien"
+//                    Button(
+//                        onClick = {
+//
+//                            tarjetaActual?.let { tarjeta ->
+//                                //siempre suma la tarjeta
+//                                if(tarjetaActual.puntajeTarjeta < 10){
+//                                    tarjeta.puntajeTarjeta++
+//                                    tarjetasViewModel.actualizarPuntajes(tarjeta, user!!.uid)
+//                                }
+//
+//                                //.2. verificiación de nivel
+//                                val objetivoNivel1 = tarjeta.puntajeTarjeta == 4 && numeroDeActividadActual == 1
+//                                val objetivoNivel2 = tarjeta.puntajeTarjeta == 8 && numeroDeActividadActual == 2
+//                                val objetivoNivel3 = tarjeta.puntajeTarjeta == 10 && numeroDeActividadActual == 3
+//
+//                                if (objetivoNivel1 || objetivoNivel2 || objetivoNivel3) {
+//                                    listaIndicesDisponibles.remove(indiceListaTarjetas)
+//                                }
+//
+//                                // 3. Decide qué hacer a continuación
+//                                if (listaIndicesDisponibles.isNotEmpty()) {
+//                                    // Si todavía quedan tarjetas, elige una nueva al azar.
+//                                    indiceListaTarjetas = listaIndicesDisponibles.random()
+//                                    tarjetaLadoPregunta = false // Voltea la nueva tarjeta al lado inicial
+//                                } else {
+//                                    // Si no quedan tarjetas, hemos terminado el nivel actual.
+//                                    actividadFinalizada = true
+//
+//                                    if (numeroDeActividadActual == 1 || numeroDeActividadActual == 2 || numeroDeActividadActual == 3) {
+//                                        // Si estábamos en el nivel 1, mostramos el aviso para pasar al 2.
+//                                        avisoSiguienteActividad = true
+//                                    } else {
+//                                        // Si estábamos en el nivel 2, la sesión ha terminado completamente.
+//                                        // Aquí podrías mostrar un diálogo final de "¡Has completado todo!"
+//                                        // y luego navegar hacia atrás.
+//                                        // Por ahora, simplemente navegamos hacia atrás.
+//                                        navController.popBackStack()
+//                                    }
+//                                }
+//
+//                            }
+//
+//                            Toast.makeText(context, "PP:  $indiceListaTarjetas", Toast.LENGTH_SHORT).show()
+//                            Log.e("disponibles", "${listaIndicesDisponibles}")
+//
+//
+//                        },
+//                        modifier = Modifier
+//                            .weight(1f)
+//                            .height(56.dp)
+//                    ) {
+//                        Text("Bien")
+//                    }
+//                } else {
+//                    // Botón "Ver Respuesta"
+//                    Button(
+//                        onClick = { tarjetaLadoPregunta = true },
+//                        enabled = (numeroDeActividadActual == 1 || numeroDeActividadActual == 2),
+//                        modifier = Modifier
+//                            .fillMaxWidth()
+//                            .height(56.dp)
+//                    ) {
+//                        Text("Ver Respuesta")
+//                    }
+//                }
+//            }
+
                 if (tarjetaLadoPregunta) {
+                    // --- BOTONES "REPASAR" Y "BIEN" (CUANDO LA TARJETA ESTÁ VOLTEADA) ---
+
+                    // Botón "Repasar"
                     Button(
                         onClick = {
-
-                            //quita siempre y punto y si aún ahy indices de tarjetas por estudiar sigue repitiendo la segunda parte
-                            // creo que sobra
-                            tarjetaActual?.let{
-                                tarjetaActual.puntajeTarjeta--
-                                tarjetasViewModel.actualizarPuntajes(tarjetaActual, user!!.uid)
+                            tarjetaActual?.let {
+                                // Es buena práctica no dejar que el puntaje sea negativo
+                                if (it.puntajeTarjeta > 0) {
+                                    it.puntajeTarjeta--
+                                    tarjetasViewModel.actualizarPuntajes(it, user!!.uid)
+                                }
                             }
-
-
-                            tarjetaLadoPregunta = false
+                            tarjetaLadoPregunta = false // Voltea para el siguiente intento
                         },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(56.dp)
+                        modifier = Modifier.weight(1f).height(56.dp)
                     ) {
                         Text("Repasar")
                     }
@@ -207,15 +308,13 @@ fun EstudioFlashCards(navController: NavHostController,
                     // Botón "Bien"
                     Button(
                         onClick = {
-
+                            // Aquí va toda tu lógica actual para el botón "Bien", que ya es correcta.
                             tarjetaActual?.let { tarjeta ->
-                                //siempre suma la tarjeta
-                                if(tarjetaActual.puntajeTarjeta < 10){
+                                if(tarjeta.puntajeTarjeta < 10){
                                     tarjeta.puntajeTarjeta++
                                     tarjetasViewModel.actualizarPuntajes(tarjeta, user!!.uid)
                                 }
 
-                                //.2. verificiación de nivel
                                 val objetivoNivel1 = tarjeta.puntajeTarjeta == 4 && numeroDeActividadActual == 1
                                 val objetivoNivel2 = tarjeta.puntajeTarjeta == 8 && numeroDeActividadActual == 2
                                 val objetivoNivel3 = tarjeta.puntajeTarjeta == 10 && numeroDeActividadActual == 3
@@ -224,53 +323,50 @@ fun EstudioFlashCards(navController: NavHostController,
                                     listaIndicesDisponibles.remove(indiceListaTarjetas)
                                 }
 
-                                // 3. Decide qué hacer a continuación
                                 if (listaIndicesDisponibles.isNotEmpty()) {
-                                    // Si todavía quedan tarjetas, elige una nueva al azar.
                                     indiceListaTarjetas = listaIndicesDisponibles.random()
-                                    tarjetaLadoPregunta = false // Voltea la nueva tarjeta al lado inicial
+                                    tarjetaLadoPregunta = false
                                 } else {
-                                    // Si no quedan tarjetas, hemos terminado el nivel actual.
                                     actividadFinalizada = true
-
-                                    if (numeroDeActividadActual == 1 || numeroDeActividadActual == 2 || numeroDeActividadActual == 3) {
-                                        // Si estábamos en el nivel 1, mostramos el aviso para pasar al 2.
-                                        avisoSiguienteActividad = true
-                                    } else {
-                                        // Si estábamos en el nivel 2, la sesión ha terminado completamente.
-                                        // Aquí podrías mostrar un diálogo final de "¡Has completado todo!"
-                                        // y luego navegar hacia atrás.
-                                        // Por ahora, simplemente navegamos hacia atrás.
-                                        navController.popBackStack()
-                                    }
+                                    avisoSiguienteActividad = true
                                 }
-
                             }
-
-                            Toast.makeText(context, "PP:  $indiceListaTarjetas", Toast.LENGTH_SHORT).show()
-                            Log.e("disponibles", "${listaIndicesDisponibles}")
-
-
                         },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(56.dp)
+                        modifier = Modifier.weight(1f).height(56.dp)
                     ) {
                         Text("Bien")
                     }
+
                 } else {
-                    // Botón "Ver Respuesta"
-                    Button(
-                        onClick = { tarjetaLadoPregunta = true; botónMalVisible = true },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp)
-                    ) {
-                        Text("Ver Respuesta")
+                    // --- BOTÓN "VER RESPUESTA" / "COMPROBAR" (LADO FRONTAL DE LA TARJETA) ---
+
+                    // Nivel 3: Muestra el botón "Comprobar Respuesta"
+                    if (numeroDeActividadActual == 3) {
+                        Button(
+                            onClick = {
+                                // Al hacer clic, simplemente volteamos la tarjeta para mostrar la respuesta correcta.
+                                // La lógica de si es "Bien" o "Mal" la decide el usuario con los siguientes botones.
+                                tarjetaLadoPregunta = true
+                            },
+                            // Habilitado solo si el usuario ha escrito algo en el TextField
+                            enabled = respuestaEscritaPorUsuario.isNotBlank(),
+                            modifier = Modifier.fillMaxWidth().height(56.dp)
+                        ) {
+                            Text("Comprobar Respuesta")
+                        }
+                    } else {
+                        // Niveles 1 y 2: Muestra el botón "Ver Respuesta"
+                        Button(
+                            onClick = { tarjetaLadoPregunta = true },
+                            enabled = true, // Siempre habilitado
+                            modifier = Modifier.fillMaxWidth().height(56.dp)
+                        ) {
+                            Text("Ver Respuesta")
+                        }
                     }
                 }
-            }
 
+            }
         }
 
     }
@@ -278,8 +374,29 @@ fun EstudioFlashCards(navController: NavHostController,
     if(avisoSiguienteActividad){
 
         AlertDialog(
-            onDismissRequest = { },
+            onDismissRequest = { avisoSiguienteActividad = true },
             title = { Text("Felicidades") },
+            text = {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "¡Nivel ${numeroDeActividadActual} completado!",
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Image(
+                        painter = painterResource(id = R.drawable.next_level), // ¡Asegúrate de tener esta imagen!
+                        contentDescription = "Trofeo de felicitación",
+                        modifier = Modifier
+                            .size(120.dp) // Dale un tamaño para que no sea demasiado grande
+                            .padding(bottom = 16.dp)
+                    )
+                }
+            },
             confirmButton = {
                 TextButton(onClick = {
 
@@ -289,6 +406,11 @@ fun EstudioFlashCards(navController: NavHostController,
                         numeroDeActividadActual = 3
                     }
 
+                    //actuzliar la lista con el nuevo nivel
+
+                    idLista?.let{
+                        listasViewModel.updateLevel(idLista,  numeroDeActividadActual)
+                    }
 
                     actividadFinalizada = false
                     avisoSiguienteActividad = false
@@ -320,11 +442,13 @@ fun EstudioFlashCards(navController: NavHostController,
 fun FlashCardView(card: Tarjeta,
                   tarjetaEstaVolteada : Boolean,
                   numeroDeActividadActual : Int,
+                  respuestaEscrita : String,
+                  onRespuestaChange : (String) -> Unit,
                   onFlipChange : (Boolean) -> Unit) {
 
     var isFlippedLocal by remember(card) { mutableStateOf(tarjetaEstaVolteada) }
     var actividadEscribir by remember { mutableStateOf(false) }
-    var respuestaEscrita by remember { mutableStateOf(TextFieldValue("")) }
+
 
 
     // Cada vez que cambia tarjetaEstaVolteada, sincronizamos
@@ -395,13 +519,10 @@ fun FlashCardView(card: Tarjeta,
                 // TextField para la respuesta del usuario
                 if (actividadEscribir && !isFlippedLocal) {
                     TextField(
-                        value = respuestaEscrita,
-                        onValueChange = { respuestaEscrita = it },
+                        value = respuestaEscrita, // Usa el valor recibido
+                        onValueChange = onRespuestaChange, // Llama a la función recibida
                         label = { Text("Escribe la respuesta") },
-                        modifier = Modifier
-                            .width(300.dp)
-                            .height(56.dp),
-                        shape = RoundedCornerShape(8.dp)
+                        //...
                     )
                 }
 

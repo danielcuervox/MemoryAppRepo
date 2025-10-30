@@ -1,6 +1,5 @@
 package com.example.memoryapplication.Ventanas
 
-import android.widget.Button
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -238,9 +237,10 @@ fun ListaDeLista(listas: List<Lista>, onClickLista: (Lista) -> Unit) {
 fun ListaItem(lista: Lista, onClick: () -> Unit) {
 
     val iconoRes = when{
-        lista.puntuación < 0 -> R.drawable.rojo
-        lista.puntuación in 0..4 -> R.drawable.plateado
-        lista.puntuación  in 5..9 -> R.drawable.naranja
+        lista.puntuacion < 0 -> R.drawable.rojo
+        lista.puntuacion == 1 -> R.drawable.plateado
+        lista.puntuacion == 2 -> R.drawable.naranja
+        lista.puntuacion  == 3 -> R.drawable.verde
         else -> R.drawable.verde
     }
 

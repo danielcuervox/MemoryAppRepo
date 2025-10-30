@@ -58,6 +58,7 @@ import com.example.memoryapplication.utils.BottonBarMio
 @Composable
 fun VentanaPalabras(navController: NavHostController,
                     usuarioViewModel: UsuarioViewModel,
+                    listasViewModel : ListasViewModel,
                     idTema : String?,
                     idLista:String?) {
 
@@ -322,6 +323,7 @@ fun VentanaPalabras(navController: NavHostController,
                         TextButton(
                             onClick = {
                                 tarjetasViewModel.reiniciarTarjetas(listasTarjetas, user!!.uid)
+                                listasViewModel.updateLevel(idListaActual, 1)
                                 AlerDiagBorrarPuntaje = false
                             }
                         ) {

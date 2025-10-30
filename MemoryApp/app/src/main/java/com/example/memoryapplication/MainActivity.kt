@@ -20,6 +20,7 @@ import com.example.memoryapplication.Ventanas.Perfil
 import com.example.memoryapplication.Ventanas.Principal
 import com.example.memoryapplication.Ventanas.Registro
 import com.example.memoryapplication.Ventanas.VentanaPalabras
+import com.example.memoryapplication.ViewModels.ListasViewModel
 import com.example.memoryapplication.ViewModels.UsuarioViewModel
 import com.example.memoryapplication.ViewModels.ViewModel
 import com.example.memoryapplication.ui.theme.MemoryApplicationTheme
@@ -37,6 +38,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val viewModel: ViewModel = viewModel()
             val usuarioViewModel: UsuarioViewModel by viewModels() //private ???
+            val listasViewModel: ListasViewModel = viewModel()
 
             MemoryApplicationTheme {
 
@@ -65,12 +67,12 @@ class MainActivity : ComponentActivity() {
                     composable("VentanaPalabras/{idTema}/{idLista}") { backStackEntry ->
                         val idTema = backStackEntry.arguments?.getString("idTema")
                         val idLista = backStackEntry.arguments?.getString("idLista")
-                        VentanaPalabras(navController, usuarioViewModel, idTema, idLista)
+                        VentanaPalabras(navController, usuarioViewModel,listasViewModel, idTema, idLista)
                     }
                     composable("VentanaEstudioFlashCards/{idTema}/{idLista}") { backStackEntry ->
                         val idTema = backStackEntry.arguments?.getString("idTema")
                         val idLista = backStackEntry.arguments?.getString("idLista")
-                        EstudioFlashCards(navController, usuarioViewModel, idTema, idLista)
+                        EstudioFlashCards(navController, usuarioViewModel, listasViewModel, idTema, idLista)
                     }
                     composable(Rutas.VentanaPerfil){
                         Perfil(navController, usuarioViewModel)

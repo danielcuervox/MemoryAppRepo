@@ -5,5 +5,5 @@ data class Lista(
     var nombreLista: String = "",
     var idUsuario: String = "",
     var idTema: String = "",
-    var puntuación : Int = 0
+    var puntuacion : Int = 0
 )
