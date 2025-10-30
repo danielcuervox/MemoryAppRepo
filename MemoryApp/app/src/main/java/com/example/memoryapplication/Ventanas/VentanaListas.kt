@@ -149,9 +149,6 @@ fun NuevaLista(navController: NavHostController, usuarioViewModel: UsuarioViewMo
             }
 
 
-
-
-
             if(abrirAlertAgregarLista){
                 AlertDialog(
                     onDismissRequest = { abrirAlertAgregarLista = false },

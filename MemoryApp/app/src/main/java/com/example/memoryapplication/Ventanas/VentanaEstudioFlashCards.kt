@@ -1,5 +1,6 @@
 package com.example.memoryapplication.Ventanas
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -31,12 +33,14 @@ import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -50,7 +54,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -59,6 +65,7 @@ import com.example.memoryapplication.R
 import com.example.memoryapplication.ViewModels.TarjetasViewModel
 import com.example.memoryapplication.ViewModels.UsuarioViewModel
 import com.example.memoryapplication.utils.BottonBarMio
+import kotlin.math.log
 
 // Definición de colores
 val ColorSilverStart = Color(0xFFC0C0C0)
@@ -91,9 +98,9 @@ fun EstudioFlashCards(navController: NavHostController,
     }
 
     val tarjetaActual = listaTarjetas.getOrNull(indiceListaTarjetas)
-    //var isShowingAnswer by remember { mutableStateOf(false) } // New state
     var tarjetaLadoPregunta by remember { mutableStateOf(false) }
     var avisoSiguienteActividad by remember { mutableStateOf(false) }
+    var numeroDeActividadActual by remember { mutableStateOf(1) }
 
 
     LaunchedEffect(key1 = idTemaActual, idListaActual) {
@@ -104,10 +111,15 @@ fun EstudioFlashCards(navController: NavHostController,
 
     // Check if the list is empty
     val isListEmpty = listaTarjetas.isEmpty()
-    val totalCards = listaTarjetas.size
+
     var botónMalVisible by remember { mutableStateOf(false) }
     var actividadFinalizada by remember { mutableStateOf(false) }
     var contadorTarjetasPorEstudiar by remember {mutableStateOf(0)}
+
+
+    val listaIndicesDisponibles = remember(listaTarjetas, numeroDeActividadActual) {
+        (0 until listaTarjetas.size).toMutableList()
+    }
 
 
     Scaffold(
@@ -136,7 +148,7 @@ fun EstudioFlashCards(navController: NavHostController,
             // Show Card Progress
             if (!isListEmpty) {
                 Text(
-                    text = "Tarjeta ${indiceListaTarjetas + 1} de $totalCards",
+                    text = "Tarjeta ${indiceListaTarjetas + 1} de totalCards",
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
@@ -145,8 +157,6 @@ fun EstudioFlashCards(navController: NavHostController,
             }
 
             // Zona que muestra la tarjeta
-
-
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -159,30 +169,8 @@ fun EstudioFlashCards(navController: NavHostController,
                         style = MaterialTheme.typography.headlineSmall
                     )
                 } else if (tarjetaActual != null) {
-                    FlashCardView(card = tarjetaActual, tarjetaLadoPregunta, onFlipChange = { tarjetaLadoPregunta = it })
-//
-//                    val progreso = tarjetaActual.puntajeTarjeta.toFloat() / 10f
-//                    Row(){
-//
-//                        Box(
-//                            modifier = Modifier
-//                                .height(200.dp) // altura de la barra
-//                                .width(24.dp)  // ancho de la barra
-//                        ){
-//
-//                            LinearProgressIndicator(
-//                                progress = { progreso },
-//                                modifier = Modifier
-//                                    .fillMaxWidth()
-//                                    .padding(vertical = 8.dp)
-//                                    .rotate(-90f),
-//                                color = MaterialTheme.colorScheme.primary,
-//                                trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
-//                                strokeCap = ProgressIndicatorDefaults.LinearStrokeCap,
-//                            )
-//
-//                        }
-//                    }
+                    FlashCardView(card = tarjetaActual, tarjetaLadoPregunta, numeroDeActividadActual,  onFlipChange = { tarjetaLadoPregunta = it })
+
                 }
             }
 
@@ -197,18 +185,15 @@ fun EstudioFlashCards(navController: NavHostController,
                     Button(
                         onClick = {
 
+                            //quita siempre y punto y si aún ahy indices de tarjetas por estudiar sigue repitiendo la segunda parte
+                            // creo que sobra
                             tarjetaActual?.let{
                                 tarjetaActual.puntajeTarjeta--
                                 tarjetasViewModel.actualizarPuntajes(tarjetaActual, user!!.uid)
                             }
 
-                            if (indiceListaTarjetas < totalCards - 1) {
-                                //en el caso de que se equivoque repite la misma pregunta
-                                tarjetaLadoPregunta = false
-                                //botónMalVisible = false
-                            } else {
-                                navController.popBackStack()
-                            }
+
+                            tarjetaLadoPregunta = false
                         },
                         modifier = Modifier
                             .weight(1f)
@@ -222,42 +207,49 @@ fun EstudioFlashCards(navController: NavHostController,
                     // Botón "Bien"
                     Button(
                         onClick = {
-                            //se evalúa el número de tarjetas que han llegado a puntaje 4
-                            contadorTarjetasPorEstudiar = 0
-
-                            for(i in listaTarjetas){
-                                if(i.puntajeTarjeta == 4){
-                                    contadorTarjetasPorEstudiar++
-                                }
-                            }
-
-                            if(contadorTarjetasPorEstudiar == listaTarjetas.size-1){
-                                actividadFinalizada = true
-                                avisoSiguienteActividad = true
-                            }
-
-//                            if(tarjetaActual!!.puntajeTarjeta < 4){
-//                                tarjetaActual.puntajeTarjeta++
-//                                tarjetasViewModel.actualizarPuntajes(tarjetaActual, user!!.uid)
-//                            }
 
                             tarjetaActual?.let { tarjeta ->
-                                if (tarjeta.puntajeTarjeta < 4) {
+                                //siempre suma la tarjeta
+                                if(tarjetaActual.puntajeTarjeta < 10){
                                     tarjeta.puntajeTarjeta++
                                     tarjetasViewModel.actualizarPuntajes(tarjeta, user!!.uid)
                                 }
+
+                                //.2. verificiación de nivel
+                                val objetivoNivel1 = tarjeta.puntajeTarjeta == 4 && numeroDeActividadActual == 1
+                                val objetivoNivel2 = tarjeta.puntajeTarjeta == 8 && numeroDeActividadActual == 2
+                                val objetivoNivel3 = tarjeta.puntajeTarjeta == 10 && numeroDeActividadActual == 3
+
+                                if (objetivoNivel1 || objetivoNivel2 || objetivoNivel3) {
+                                    listaIndicesDisponibles.remove(indiceListaTarjetas)
+                                }
+
+                                // 3. Decide qué hacer a continuación
+                                if (listaIndicesDisponibles.isNotEmpty()) {
+                                    // Si todavía quedan tarjetas, elige una nueva al azar.
+                                    indiceListaTarjetas = listaIndicesDisponibles.random()
+                                    tarjetaLadoPregunta = false // Voltea la nueva tarjeta al lado inicial
+                                } else {
+                                    // Si no quedan tarjetas, hemos terminado el nivel actual.
+                                    actividadFinalizada = true
+
+                                    if (numeroDeActividadActual == 1 || numeroDeActividadActual == 2 || numeroDeActividadActual == 3) {
+                                        // Si estábamos en el nivel 1, mostramos el aviso para pasar al 2.
+                                        avisoSiguienteActividad = true
+                                    } else {
+                                        // Si estábamos en el nivel 2, la sesión ha terminado completamente.
+                                        // Aquí podrías mostrar un diálogo final de "¡Has completado todo!"
+                                        // y luego navegar hacia atrás.
+                                        // Por ahora, simplemente navegamos hacia atrás.
+                                        navController.popBackStack()
+                                    }
+                                }
+
                             }
 
-                            if (!actividadFinalizada) {
-                                //indiceListaTarjetas++
-                                var indiceRandom = (0..totalCards-1).random()
+                            Toast.makeText(context, "PP:  $indiceListaTarjetas", Toast.LENGTH_SHORT).show()
+                            Log.e("disponibles", "${listaIndicesDisponibles}")
 
-                                indiceListaTarjetas = indiceRandom
-                                //listaTarjetas[indiceRandom]
-
-                                tarjetaLadoPregunta = false
-                                //botónMalVisible = false
-                            }
 
                         },
                         modifier = Modifier
@@ -289,7 +281,23 @@ fun EstudioFlashCards(navController: NavHostController,
             onDismissRequest = { },
             title = { Text("Felicidades") },
             confirmButton = {
-                TextButton(onClick = { avisoSiguienteActividad = false }) {
+                TextButton(onClick = {
+
+                    if(numeroDeActividadActual == 1){
+                        numeroDeActividadActual = 2
+                    }else if(numeroDeActividadActual == 2){
+                        numeroDeActividadActual = 3
+                    }
+
+
+                    actividadFinalizada = false
+                    avisoSiguienteActividad = false
+
+
+                    //se reestablecen los indices
+                    //indiceListaTarjetas = listaIndicesDisponibles.random()
+
+                }) {
                     Text("Siguiente Nivel")
                 }
             },
@@ -309,9 +317,15 @@ fun EstudioFlashCards(navController: NavHostController,
 
 
 @Composable
-fun FlashCardView(card: Tarjeta, tarjetaEstaVolteada : Boolean, onFlipChange : (Boolean) -> Unit) {
+fun FlashCardView(card: Tarjeta,
+                  tarjetaEstaVolteada : Boolean,
+                  numeroDeActividadActual : Int,
+                  onFlipChange : (Boolean) -> Unit) {
 
     var isFlippedLocal by remember(card) { mutableStateOf(tarjetaEstaVolteada) }
+    var actividadEscribir by remember { mutableStateOf(false) }
+    var respuestaEscrita by remember { mutableStateOf(TextFieldValue("")) }
+
 
     // Cada vez que cambia tarjetaEstaVolteada, sincronizamos
     LaunchedEffect(tarjetaEstaVolteada) {
@@ -323,28 +337,24 @@ fun FlashCardView(card: Tarjeta, tarjetaEstaVolteada : Boolean, onFlipChange : (
         animationSpec = tween(durationMillis = 300),
         label = "cardRotationAnimation"
     )
-
-
-    //val contentText = if (tarjetaEstaVolteada) card.respuestaReverso else card.preguntaFrente
-    //val cardColor = if (tarjetaEstaVolteada) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.secondaryContainer
-
-//    val currentProgress = when{
-//        card.puntajeTarjeta < 0 -> R.drawable.rojo
-//        card.puntajeTarjeta == 1 -> R.drawable.plateado1
-//        card.puntajeTarjeta == 2 -> R.drawable.plateado2
-//        card.puntajeTarjeta == 3 -> R.drawable.plateado3
-//        card.puntajeTarjeta == 4 -> R.drawable.plateado4
-//        card.puntajeTarjeta  in 5..9 -> R.drawable.naranja
-//        else -> R.drawable.verde
-//    }
+    Log.e("actividad", "ACTUAL: $numeroDeActividadActual")
 
     var currentProgress = card.puntajeTarjeta
 
-    val contentText = if (isFlippedLocal) card.respuestaReverso else card.preguntaFrente
+    var contentText : String = ""
+
+    when (numeroDeActividadActual){
+
+        1 -> contentText = if (isFlippedLocal) card.respuestaReverso else card.preguntaFrente
+        2 -> contentText = if (isFlippedLocal) card.preguntaFrente else card.respuestaReverso
+        3 -> {
+            contentText = if (isFlippedLocal) card.preguntaFrente else card.respuestaReverso
+            actividadEscribir = true
+        }
+    }
+
     val cardColor = if (isFlippedLocal) MaterialTheme.colorScheme.surfaceContainer
     else MaterialTheme.colorScheme.secondaryContainer
-
-
 
     Card(
         modifier = Modifier
@@ -360,30 +370,136 @@ fun FlashCardView(card: Tarjeta, tarjetaEstaVolteada : Boolean, onFlipChange : (
             },
         colors = CardDefaults.cardColors(containerColor = cardColor)
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
-            contentAlignment = Alignment.Center // <--- contentAlignment es correcto aquí.
-        ) {
-            Text(
-                text = contentText,
-                style = MaterialTheme.typography.headlineMedium,
-                color = if (isFlippedLocal) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.graphicsLayer {
-                    rotationY = if (rotation > 90f) 180f else 0f
+
+
+        if (numeroDeActividadActual == 3) {
+            // --- LAYOUT PARA EL NIVEL 3 (con TextField) ---
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                // Texto de la pregunta
+                Text(
+                    text = contentText,
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = if (isFlippedLocal) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier
+                        .graphicsLayer { rotationY = if (rotation > 90f) 180f else 0f }
+                        .padding(bottom = 32.dp),
+                    textAlign = TextAlign.Center
+                )
+
+                // TextField para la respuesta del usuario
+                if (actividadEscribir && !isFlippedLocal) {
+                    TextField(
+                        value = respuestaEscrita,
+                        onValueChange = { respuestaEscrita = it },
+                        label = { Text("Escribe la respuesta") },
+                        modifier = Modifier
+                            .width(300.dp)
+                            .height(56.dp),
+                        shape = RoundedCornerShape(8.dp)
+                    )
                 }
-            )
-            // Reemplazo de Image con el componente GradientProgressBar
-            GradientProgressBar(
-                progress = currentProgress,
-                totalLevels = 10,
-                barWidth = 8f,
-                barHeight = 40f,
-                // ¡CORRECCIÓN CLAVE! Pasar .align(Alignment.BottomEnd) al modificador del componente
-                modifier = Modifier.align(Alignment.BottomEnd)
-            )
+
+                // Contenedor para la barra de progreso
+                Box(modifier = Modifier.fillMaxSize()) {
+                    if (!isFlippedLocal) {
+                        GradientProgressBar(
+                            progress = currentProgress,
+                            // ... otros parámetros
+                            modifier = Modifier.align(Alignment.BottomEnd)
+                        )
+                    }
+                }
+            }
+        }else{
+            // --- LAYOUT PARA LOS NIVELES 1 y 2 (texto centrado) ---
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center // Esto centra el texto perfectamente
+            ) {
+                // Texto de la pregunta/respuesta
+                Text(
+                    text = contentText,
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = if (isFlippedLocal) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.graphicsLayer {
+                        rotationY = if (rotation > 90f) 180f else 0f
+                    },
+                    textAlign = TextAlign.Center
+                )
+
+                // Barra de progreso (se alinea abajo a la derecha dentro del Box)
+                if (!isFlippedLocal) {
+                    GradientProgressBar(
+                        progress = currentProgress,
+                        // ... otros parámetros
+                        modifier = Modifier.align(Alignment.BottomEnd)
+                    )
+                }
+            }
         }
+
+
+
+
+
+//        Column(
+//            modifier = Modifier
+//                .fillMaxSize()
+//                .padding(24.dp),
+//            horizontalAlignment = Alignment.CenterHorizontally, // Centra los hijos horizontalmente
+//            verticalArrangement = Arrangement.Center      // Centra el grupo de hijos verticalmente
+//        ) {
+//            Text(
+//                text = contentText,
+//                style = MaterialTheme.typography.headlineMedium,
+//                color = if (isFlippedLocal) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
+//                modifier = Modifier
+//                    .graphicsLayer {
+//                        rotationY = if (rotation > 90f) 180f else 0f
+//                    }
+//                    .padding(bottom = 32.dp), // Añade espacio entre el texto y el TextField
+//                textAlign = TextAlign.Center
+//            )
+//
+//            if(actividadEscribir && !isFlippedLocal){
+//
+//
+//                TextField(
+//                    value = respuestaEscrita,
+//                    onValueChange = { respuestaEscrita = it },
+//                    label = { Text("escribe la respuesta") },
+//                    modifier = Modifier
+//                        .width(300.dp)
+//                        .height(56.dp),
+//                    shape = RoundedCornerShape(8.dp)
+//                )
+//            }
+//
+//
+//            Box(
+//                modifier = Modifier
+//                    .fillMaxSize() // Ocupa todo el espacio restante de la Column
+//            ) {
+//                if (!isFlippedLocal) {
+//                    GradientProgressBar(
+//                        progress = currentProgress,
+//                        totalLevels = 10,
+//                        barWidth = 8f,
+//                        barHeight = 40f,
+//                        modifier = Modifier.align(Alignment.BottomEnd) // Lo alineamos en la esquina inferior derecha
+//                    )
+//                }
+//            }
+//
+//        }
     }
 }
 
